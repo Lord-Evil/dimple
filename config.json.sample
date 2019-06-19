@@ -1,0 +1,6 @@
+{
+	"port":8080,
+	"server_path":"./app/",
+	"address":"127.0.0.1",
+	"gzip": true
+}

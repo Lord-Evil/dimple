@@ -1,0 +1,8 @@
+{
+	"name":"simpleserver",
+	"targetType":"executable",
+	"dependencies": {
+		"vibe-d:http": "*"
+	},
+	"libs":["PH7"]
+}
