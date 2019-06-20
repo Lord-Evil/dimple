@@ -1,7 +1,7 @@
 import ph7;
 static import std.conv;
 import vibe.http.server;
-import std.string: toStringz;
+import std.string: toStringz, indexOf, strip, toLower;
 import std.stdio;
 
 string getType(ph7_value *pVal)
@@ -27,7 +27,6 @@ string getType(ph7_value *pVal)
 	return zType;
 }
 
-string response;
 //extern(C) static int setHeaders(ph7_context *pCtx, uint nOutputLen, void *args/* Unused */){
 extern(C) static int setHeaders(ph7_context *pCtx, int nArg, ph7_value **apArg/* Unused */){
 	int i;
@@ -39,24 +38,46 @@ extern(C) static int setHeaders(ph7_context *pCtx, int nArg, ph7_value **apArg/*
 	
 	ph7_value *pObj;
 	pObj = apArg[0];
+
+	if(getType(apArg[0])!="string")
+	{
+		ph7_result_bool(pCtx,0);
+		return DPP_ENUM_SXRET_OK;
+	}
+
+	ph7_vm *pVm=pObj.pVm;
+	writeln("2 PVM:",pVm);
 	int nLen;
 	const char* p = ph7_value_to_string(apArg[0],&nLen);
-	string output = p[0..nLen].idup ~ '\n';
-	writeln(getType(apArg[0]));
-	writeln(apArg[0].iFlags);
-	writeln(output);
+	string header = p[0..nLen].idup ~ '\n';
+	int sep = header.indexOf(':');
+	if(sep<0){
+		ph7_result_bool(pCtx,0);
+		return DPP_ENUM_SXRET_OK;
+	}
+	string headerKey = header[0..sep].strip();
+	string headerVal = header[(sep+1)..($-1)].strip();
+	writeln(headerKey, "*", headerVal);
+	//if(headerKey.toLower=="content-type")
+	//	context[pVm].contentType(headerVal);
+//	context[pVm].headers[headerKey]=headerVal;
+	writeln("2 res: ",context);
 	
 	ph7_result_bool(pCtx,1);
-    return 0;
+    return DPP_ENUM_SXRET_OK;
 } //int ph7_create_function(ph7_vm*, const(char)*, int function(ph7_context*, int, ph7_value**), void*) @nogc nothrow;
 extern(C) static int Output_Consumer(const void *pOutput, uint nOutputLen, void *pUserData/* Unused */){
     char * p = cast(char*)pOutput;
     string output = p[0..nOutputLen].idup ~ '\n';
-    response ~= output;
+    HTTPServerResponse res = cast(HTTPServerResponse)pUserData;
+    res.writeBody(output);
     return 0;
 }
+
+HTTPServerResponse[ph7_vm*] context;
+
 void runPHP(string code, HTTPServerRequest req, HTTPServerResponse res){
-    response="";
+    res.contentType("text/html");
     ph7 *pEngine;
     ph7_vm *pVm;
     int rc;
@@ -75,44 +96,48 @@ void runPHP(string code, HTTPServerRequest req, HTTPServerResponse res){
         &pVm,     /* OUT: Compiled PHP program */
         0         /* IN: Compile flags */
         );
-    
+    context[pVm] = res;
+    writeln("1 PVM:",pVm);
+    writeln("1 res: ",context);
     rc = ph7_vm_config(pVm, 
         DPP_ENUM_PH7_VM_CONFIG_OUTPUT, 
         &Output_Consumer,    /* Output Consumer callback */
-        0                   /* Callback private data */
+        cast(void*)res                   /* Callback private data */
         );
 
-        string method = std.conv.to!string(req.method);
-        setServerAttr(pVm, "REQUEST_METHOD", method);
-        if(req.queryString.length>0){
-            setServerAttr(pVm, "QUERY_STRING", req.queryString);
-            foreach(string key, string val; req.query){
-                ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_GET_ATTR,toStringz(key),toStringz(val),-1);    
-            }
+    string method = std.conv.to!string(req.method);
+    setServerAttr(pVm, "REQUEST_METHOD", method);
+    if(req.queryString.length>0){
+        setServerAttr(pVm, "QUERY_STRING", req.queryString);
+        foreach(string key, string val; req.query){
+            ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_GET_ATTR,toStringz(key),toStringz(val),-1);    
         }
-        foreach(string key, string val; req.form){
-            ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_POST_ATTR,toStringz(key),toStringz(val),-1);    
-        }
-        foreach(string key, string val; req.headers){
-            ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_HEADER_ATTR,toStringz(key),toStringz(val),-1);    
-        }
-        string[string] cookies;
-        @safe int cook(string key, string val){
-            cookies[key]=val;
-            return 0;
-        }
-        req.cookies.opApply(&cook);
-        foreach(key, val; cookies){
-            ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_COOKIE_ATTR,toStringz(key),toStringz(val),-1);    
-        }
+    }
+    foreach(string key, string val; req.form){
+        ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_POST_ATTR,toStringz(key),toStringz(val),-1);    
+    }
+    foreach(string key, string val; req.headers){
+        ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_HEADER_ATTR,toStringz(key),toStringz(val),-1);    
+    }
+    string[string] cookies;
+    @safe int cook(string key, string val){
+        cookies[key]=val;
+        return 0;
+    }
+    req.cookies.opApply(&cook);
+    foreach(key, val; cookies){
+        ph7_vm_config(pVm,DPP_ENUM_PH7_VM_CONFIG_COOKIE_ATTR,toStringz(key),toStringz(val),-1);    
+    }
 
-        ph7_create_function(pVm, "header".toStringz, &setHeaders, null);
+    ph7_create_function(pVm, "header".toStringz, &setHeaders, null);
+
+    context.remove(pVm);
 
     int zero = 0;
     ph7_vm_exec(pVm, &zero);
     ph7_vm_release(pVm);
     ph7_release(pEngine);
-    res.writeBody(response, "text/html");
+    //res.writeBody(response, "text/html");
 }
 
 int setServerAttr(ph7_vm* pVm, string key, string val){

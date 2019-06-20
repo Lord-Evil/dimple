@@ -261,24 +261,25 @@ extern(C)
     }
     struct ph7_value
     {
-        ph7_real rVal;      /* Real value */
-        union x{              
-            sxi64 iVal;     /* Integer value */
-            void *pOther;   /* Other values (Object, Array, Resource, Namespace, etc.) */
-        };
-        int iFlags;       /* Control flags (see below) */
-        ph7_vm *pVm;        /* Virtual machine that own this instance */
-        SyBlob sBlob;       /* String values */
-        uint nIdx;         /* Index number of this entry in the global object allocator */
+        double rVal;
+        static union _Anonymous_0
+        {
+            long iVal;
+            void* pOther;
+        }
+        _Anonymous_0 x;
+        int iFlags;
+        ph7_vm* pVm;
+        SyBlob sBlob;
+        uint nIdx;
     }
     struct SyBlob
     {
-        //SyMemBackend *pAllocator; /* Memory backend */
-        int *unused;
-        void   *pBlob;            /* Base pointer */
-        sxu32  nByte;             /* Total number of used bytes */
-        sxu32  mByte;             /* Total number of available bytes */
-        sxu32  nFlags;            /* Blob internal flags,see below */
+        int* pAllocator;
+        void* pBlob;
+        uint nByte;
+        uint mByte;
+        uint nFlags;
     }
     enum DPP_ENUM___GNUC_VA_LIST = 1;
     enum DPP_ENUM_PH7_VERSION_NUMBER = 2001004;

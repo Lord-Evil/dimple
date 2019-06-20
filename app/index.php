@@ -10,6 +10,7 @@ print_r($_HEADER);
 print_r($_COOKIE);
 /*print_r($_SESSION);*/
 header('Location: http://www.example.com/');
+header('Content-Type: text/plain');
 ?>
 <form method=POST>
 	<input type="text" name="txtBox1">
