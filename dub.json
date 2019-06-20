@@ -4,5 +4,6 @@
 	"dependencies": {
 		"vibe-d:http": "*"
 	},
-	"libs":["PH7"]
+	"libs-windows":["PH7"],
+	"lflags-linux":["./libPH7.so","-s"]
 }

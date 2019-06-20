@@ -81,6 +81,7 @@ void main(string[] args){
 		catch(Exception){
 			throw new HTTPStatusException(HTTPStatus.InternalServerError, "Failed to get information for the file due to a file system error.");
 		}
+		res.contentType("text/html");
 		if (dirent.isDirectory) {
 			if(exists(filePath~"/index.php")){
 				runPHP(filePath~"/index.php", req, res);

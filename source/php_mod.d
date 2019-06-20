@@ -50,18 +50,18 @@ extern(C) static int setHeaders(ph7_context *pCtx, int nArg, ph7_value **apArg/*
 	int nLen;
 	const char* p = ph7_value_to_string(apArg[0],&nLen);
 	string header = p[0..nLen].idup ~ '\n';
-	int sep = header.indexOf(':');
+	long sep = header.indexOf(':');
 	if(sep<0){
 		ph7_result_bool(pCtx,0);
 		return DPP_ENUM_SXRET_OK;
 	}
 	string headerKey = header[0..sep].strip();
 	string headerVal = header[(sep+1)..($-1)].strip();
-	writeln(headerKey, "*", headerVal);
-	//if(headerKey.toLower=="content-type")
-	//	context[pVm].contentType(headerVal);
-//	context[pVm].headers[headerKey]=headerVal;
-	writeln("2 res: ",context);
+	if(headerKey.toLower=="content-type"){
+	   context[pVm].contentType(headerVal);
+    }
+	else
+        context[pVm].headers[headerKey]=headerVal;
 	
 	ph7_result_bool(pCtx,1);
     return DPP_ENUM_SXRET_OK;
@@ -77,7 +77,6 @@ extern(C) static int Output_Consumer(const void *pOutput, uint nOutputLen, void 
 HTTPServerResponse[ph7_vm*] context;
 
 void runPHP(string code, HTTPServerRequest req, HTTPServerResponse res){
-    res.contentType("text/html");
     ph7 *pEngine;
     ph7_vm *pVm;
     int rc;
@@ -97,8 +96,6 @@ void runPHP(string code, HTTPServerRequest req, HTTPServerResponse res){
         0         /* IN: Compile flags */
         );
     context[pVm] = res;
-    writeln("1 PVM:",pVm);
-    writeln("1 res: ",context);
     rc = ph7_vm_config(pVm, 
         DPP_ENUM_PH7_VM_CONFIG_OUTPUT, 
         &Output_Consumer,    /* Output Consumer callback */
@@ -131,13 +128,12 @@ void runPHP(string code, HTTPServerRequest req, HTTPServerResponse res){
 
     ph7_create_function(pVm, "header".toStringz, &setHeaders, null);
 
-    context.remove(pVm);
 
     int zero = 0;
     ph7_vm_exec(pVm, &zero);
+    context.remove(pVm);
     ph7_vm_release(pVm);
     ph7_release(pEngine);
-    //res.writeBody(response, "text/html");
 }
 
 int setServerAttr(ph7_vm* pVm, string key, string val){

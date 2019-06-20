@@ -1,5 +1,8 @@
-<?php $z=25; ?>
-Hello, <?= 2*$z ?>
+<?php 
+header('Content-Type: text/html');
+$z=25; 
+?>
+Hello1, <?= 2*$z ?>
 Hello, <?= 4*$z ?>
 
 <?php
@@ -10,7 +13,6 @@ print_r($_HEADER);
 print_r($_COOKIE);
 /*print_r($_SESSION);*/
 header('Location: http://www.example.com/');
-header('Content-Type: text/plain');
 ?>
 <form method=POST>
 	<input type="text" name="txtBox1">
