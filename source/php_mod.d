@@ -26,18 +26,22 @@ string getType(ph7_value *pVal)
 	}
 	return zType;
 }
-
-//extern(C) static int setHeaders(ph7_context *pCtx, uint nOutputLen, void *args/* Unused */){
-extern(C) static int setHeaders(ph7_context *pCtx, int nArg, ph7_value **apArg/* Unused */){
+void parseArgs(int nArg, ph7_value **apArg){
+    for(int i=0;i<nArg;i++){
+        ph7_value *pObj = apArg[i];
+        //switch()
+        writeln(getType(apArg[i]));
+    }
+}
+extern(C) static int setHeaders(ph7_context *pCtx, int nArg, ph7_value **apArg){
 	int i;
 	if( nArg < 1 ){
 		/* Missing arguments,return false */
 		ph7_result_bool(pCtx,0);
 		return DPP_ENUM_SXRET_OK;
 	}
-	
-	ph7_value *pObj;
-	pObj = apArg[0];
+	parseArgs(nArg, apArg);
+	ph7_value *pObj = apArg[0];
 
 	if(getType(apArg[0])!="string")
 	{
@@ -46,7 +50,6 @@ extern(C) static int setHeaders(ph7_context *pCtx, int nArg, ph7_value **apArg/*
 	}
 
 	ph7_vm *pVm=pObj.pVm;
-	writeln("2 PVM:",pVm);
 	int nLen;
 	const char* p = ph7_value_to_string(apArg[0],&nLen);
 	string header = p[0..nLen].idup ~ '\n';
@@ -65,7 +68,8 @@ extern(C) static int setHeaders(ph7_context *pCtx, int nArg, ph7_value **apArg/*
 	
 	ph7_result_bool(pCtx,1);
     return DPP_ENUM_SXRET_OK;
-} //int ph7_create_function(ph7_vm*, const(char)*, int function(ph7_context*, int, ph7_value**), void*) @nogc nothrow;
+}
+
 extern(C) static int Output_Consumer(const void *pOutput, uint nOutputLen, void *pUserData/* Unused */){
     char * p = cast(char*)pOutput;
     string output = p[0..nOutputLen].idup ~ '\n';

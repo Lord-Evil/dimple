@@ -6,11 +6,11 @@ Hello1, <?= 2*$z ?>
 Hello, <?= 4*$z ?>
 
 <?php
-print_r($_SERVER);
+/*print_r($_SERVER);
 print_r($_GET);
 print_r($_POST);
 print_r($_HEADER);
-print_r($_COOKIE);
+print_r($_COOKIE);*/
 /*print_r($_SESSION);*/
 header('Location: http://www.example.com/');
 ?>

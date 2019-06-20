@@ -89,7 +89,7 @@ void main(string[] args){
 			}
 		}else if(path.endsWith(".php")){
 			if(exists(filePath)){
-				runPHP(readText(filePath), req, res);
+				runPHP(filePath, req, res);
 				return;
 			}
 		}
