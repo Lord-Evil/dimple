@@ -76,24 +76,35 @@ void main(string[] args){
 	void phpHandler(HTTPServerRequest req, HTTPServerResponse res){
 		string path = req.path;
 		string filePath=server_path~path;
+		if(!exists(filePath)){
+			throw new HTTPStatusException(HTTPStatus.NotFound);
+		}
 		FileInfo dirent;
 		try dirent = getFileInfo(filePath);
 		catch(Exception){
 			throw new HTTPStatusException(HTTPStatus.InternalServerError, "Failed to get information for the file due to a file system error.");
 		}
-		res.contentType("text/html");
 		if (dirent.isDirectory) {
 			if(exists(filePath~"/index.php")){
+				res.contentType("text/html");
 				runPHP(filePath~"/index.php", req, res);
 				return;
 			}
 		}else if(path.endsWith(".php")){
 			if(exists(filePath)){
+				res.contentType("text/html");
 				runPHP(filePath, req, res);
 				return;
 			}
+		}else{
+			if(path.endsWith(".css"))
+				res.contentType("text/css");
+			else if(path.endsWith(".html"))
+				res.contentType("text/html");
+			else if(path.endsWith(".js"))
+				res.contentType("application/javascript");
+			sendFile(req, res, NativePath(filePath));
 		}
-		sendFile(req, res, NativePath(filePath));
 	}
 	return &phpHandler;
 }
